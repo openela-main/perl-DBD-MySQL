@@ -1,30 +1,33 @@
+# mysql is not available on ix86
+ExcludeArch:    %{ix86}
+
 Name:           perl-DBD-MySQL
-Version:        4.050
-Release:        13%{?dist}
+Version:        4.053
+Release:        1%{?dist}
 Summary:        A MySQL interface for Perl
 License:        GPL+ or Artistic
 URL:            https://metacpan.org/release/DBD-mysql
 Source0:        https://cpan.metacpan.org/authors/id/D/DV/DVEEDEN/DBD-mysql-%{version}.tar.gz
+Source1:        test-setup.t
+Source2:        test-clean.t
+Source3:        testrules.yml
+Source4:        test-env.sh
 # Remove a useless shebang, bug #1813195,
 # <https://github.com/perl5-dbi/DBD-mysql/pull/321>
 Patch0:         DBD-mysql-4.050-Remove-a-useless-shebang-from-DBD-mysql.patch
-BuildRequires: make
 BuildRequires:  coreutils
 BuildRequires:  findutils
 BuildRequires:  gcc
-BuildRequires:  mariadb-connector-c
-BuildRequires:  mariadb-connector-c-devel
+BuildRequires:  make
+BuildRequires:  mysql-devel
 BuildRequires:  openssl-devel
 BuildRequires:  perl-devel
 BuildRequires:  perl-generators
 BuildRequires:  perl-interpreter
-BuildRequires:  perl(Carp)
 BuildRequires:  perl(Config)
 BuildRequires:  perl(Data::Dumper)
-BuildRequires:  perl(DBI) >= 1.609
 BuildRequires:  perl(DBI::DBD)
 BuildRequires:  perl(Devel::CheckLib) >= 1.09
-BuildRequires:  perl(DynaLoader)
 BuildRequires:  perl(ExtUtils::MakeMaker) >= 6.76
 BuildRequires:  perl(File::Basename)
 BuildRequires:  perl(File::Copy)
@@ -35,6 +38,24 @@ BuildRequires:  perl(strict)
 BuildRequires:  perl(utf8)
 BuildRequires:  perl(warnings)
 BuildRequires:  zlib-devel
+# Run-time
+BuildRequires:  perl(Carp)
+BuildRequires:  perl(DBI) >= 1.609
+BuildRequires:  perl(DBI::Const::GetInfoType)
+BuildRequires:  perl(DynaLoader)
+# Tests
+BuildRequires:  mysql
+BuildRequires:  mysql-server
+BuildRequires:  perl(B)
+BuildRequires:  perl(bigint)
+# Required to process t/testrules.yml
+BuildRequires:  perl(CPAN::Meta::YAML)
+BuildRequires:  perl(Encode)
+BuildRequires:  perl(lib)
+BuildRequires:  perl(Test::Deep)
+BuildRequires:  perl(Test::More)
+BuildRequires:  perl(Time::HiRes)
+BuildRequires:  perl(vars)
 Requires:       perl(:MODULE_COMPAT_%(eval "`perl -V:version`"; echo $version))
 Provides:       perl-DBD-mysql = %{version}-%{release}
 
@@ -48,14 +69,23 @@ management system.
 
 %prep
 %setup -q -n DBD-mysql-%{version}
-%patch0 -p1
+%patch -P0 -p1
 
 # Correct file permissions
 find . -type f | xargs chmod -x
 
+cp %{SOURCE1} %{SOURCE2} %{SOURCE3} t/
+cp %{SOURCE4} .
+
 %build
+. %{SOURCE4}
 perl Makefile.PL INSTALLDIRS=vendor OPTIMIZE="%{optflags}" \
-  NO_PACKLIST=1 NO_PERLLOCAL=1
+  NO_PACKLIST=1 NO_PERLLOCAL=1 \
+  --testdb=$DBD_MYSQL_TESTDB \
+  --testuser=$DBD_MYSQL_TESTUSER \
+  --testpassword=$DBD_MYSQL_TESTPASSWORD \
+  --testhost=$DBD_MYSQL_TESTHOST \
+  --testsocket=$DBD_MYSQL_TESTSOCKET
 %{make_build}
 
 %install
@@ -64,8 +94,10 @@ find %{buildroot} -type f -name '*.bs' -empty -delete
 %{_fixperms} %{buildroot}/*
 
 %check
-# Full test coverage requires a live MySQL database
-#make test
+# Set MySQL and DBD::mysql test environment
+. %{SOURCE4}
+unset RELEASE_TESTING
+make test %{?with_perl_DBD_MySQL_enables_leak_test:EXTENDED_TESTING=1}
 
 %files
 %license LICENSE
@@ -76,6 +108,11 @@ find %{buildroot} -type f -name '*.bs' -empty -delete
 %{_mandir}/man3/*.3*
 
 %changelog
+* Thu Mar 13 2025 Jitka Plesnikova <jplesnik@redhat.com> - 4.053-1
+- Resolves: RHEL-53861, RHEL-77083
+- Update check for SSL connection
+- Enable testing
+
 * Mon Aug 09 2021 Mohan Boddu <mboddu@redhat.com> - 4.050-13
 - Rebuilt for IMA sigs, glibc 2.34, aarch64 flags
   Related: rhbz#1991688
