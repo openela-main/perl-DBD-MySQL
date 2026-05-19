@@ -1,0 +1,20 @@
+diff -u -r DBD-mysql-4.053.orig/dbdimp.c DBD-mysql-4.053/dbdimp.c
+--- DBD-mysql-4.053.orig/dbdimp.c	2025-11-05 16:42:56.268297096 +0100
++++ DBD-mysql-4.053/dbdimp.c	2025-11-05 16:48:35.530544337 +0100
+@@ -2111,16 +2111,6 @@
+ 
+     if (result)
+     {
+-      /*
+-        we turn off Mysql's auto reconnect and handle re-connecting ourselves
+-        so that we can keep track of when this happens.
+-      */
+-#if MYSQL_VERSION_ID >= 50013
+-      my_bool reconnect = FALSE;
+-      mysql_options(result, MYSQL_OPT_RECONNECT, &reconnect);
+-#else
+-      result->reconnect = 0;
+-#endif
+ #if MYSQL_VERSION_ID >=SERVER_PREPARE_VERSION
+       /* connection succeeded. */
+       /* imp_dbh == NULL when mysql_dr_connect() is called from mysql.xs

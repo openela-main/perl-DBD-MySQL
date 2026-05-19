@@ -1,0 +1,54 @@
+Update test for have_ssl removal
+From https://dev.mysql.com/doc/relnotes/mysql/8.4/en/news-8-4-0.html
+
+"The --ssl and --admin-ssl server options, as well as the have_ssl and
+have_openssl server system variables, were all deprecated in MySQL
+8.0.26, and are all removed in this release. Use --tls-version and
+--admin-tls-version instead."
+
+So testing for `have_ssl` no longer works as expected.
+
+Also removal of `--ssl`/`--skip-ssl` makes testing this more difficult.
+diff --git a/t/92ssl_backronym_vulnerability.t b/t/92ssl_backronym_vulnerability.t
+index 5237c6dc..a3e40621 100644
+--- a/t/92ssl_backronym_vulnerability.t
++++ b/t/92ssl_backronym_vulnerability.t
+@@ -13,6 +13,9 @@ my $have_ssl = eval { $dbh->selectrow_hashref("SHOW VARIABLES WHERE Variable_nam
+ $dbh->disconnect();
+ plan skip_all => 'Server supports SSL connections, cannot test false-positive enforcement' if $have_ssl and $have_ssl->{Value} eq 'YES';
+ 
++# `have_ssl` has been deprecated in 8.0.26 and removed in 8.4.0...
++plan skip_all => 'Server might support SSL connections, cannot test false-positive enforcement' if not $have_ssl;
++
+ plan tests => 4;
+ 
+ $dbh = DBI->connect($test_dsn, $test_user, $test_password, { PrintError => 0, RaiseError => 0, mysql_ssl => 1 });
+diff --git a/t/92ssl_optional.t b/t/92ssl_optional.t
+index a4e71e7c..77fb9e01 100644
+--- a/t/92ssl_optional.t
++++ b/t/92ssl_optional.t
+@@ -13,6 +13,9 @@ my $have_ssl = eval { $dbh->selectrow_hashref("SHOW VARIABLES WHERE Variable_nam
+ $dbh->disconnect();
+ plan skip_all => 'Server supports SSL connections, cannot test fallback to plain text' if $have_ssl and $have_ssl->{Value} eq 'YES';
+ 
++# `have_ssl` has been deprecated in 8.0.26 and removed in 8.4.0...
++plan skip_all => 'Server might support SSL connections, cannot test false-positive enforcement' if not $have_ssl;
++
+ plan tests => 2;
+ 
+ $dbh = DBI->connect($test_dsn, $test_user, $test_password, { PrintError => 1, RaiseError => 0, mysql_ssl => 1, mysql_ssl_optional => 1 });
+diff --git a/t/92ssl_riddle_vulnerability.t b/t/92ssl_riddle_vulnerability.t
+index 2354a73a..783a3203 100644
+--- a/t/92ssl_riddle_vulnerability.t
++++ b/t/92ssl_riddle_vulnerability.t
+@@ -13,6 +13,9 @@ my $have_ssl = eval { $dbh->selectrow_hashref("SHOW VARIABLES WHERE Variable_nam
+ $dbh->disconnect();
+ plan skip_all => 'Server supports SSL connections, cannot test false-positive enforcement' if $have_ssl and $have_ssl->{Value} eq 'YES';
+ 
++# `have_ssl` has been deprecated in 8.0.26 and removed in 8.4.0...
++plan skip_all => 'Server might support SSL connections, cannot test false-positive enforcement' if not $have_ssl;
++
+ plan tests => 4;
+ 
+ $dbh = DBI->connect($test_dsn, '4yZ73s9qeECdWi', '64heUGwAsVoNqo', { PrintError => 0, RaiseError => 0, mysql_ssl => 1 });
+
